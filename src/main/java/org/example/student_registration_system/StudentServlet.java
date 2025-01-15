@@ -65,6 +65,7 @@ public class StudentServlet extends HttpServlet {
           anything other than we specify by modifying
           html
          */
+        //res.getWriter().println("hello");
 
         if(
                 (name == null || email == null || course == null) ||
@@ -80,19 +81,22 @@ public class StudentServlet extends HttpServlet {
                 if anything wrong found redirect the user
                 to error page
              */
-            res.sendRedirect("error.jsp");
+            processError(req,res,true);
 
             /*
             and return from here otherwise if the user mail
             is also invalid next if block will execute and
-            redirect which will create an error, because we cant
-            another redirect after calling one;
+            we don't want that;
              */
             return;
         }
 
-        //copied from chatgpt
-        // Regex for a valid email address
+
+        /*
+        Regex for a valid email address
+        copied from chatgpt
+         */
+
         String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$";
 
         // Compile the regex
@@ -104,7 +108,9 @@ public class StudentServlet extends HttpServlet {
         //if the email is in invalid format redirect to error page
         if(!matcher.matches()){
             System.out.println("not a valid email");
-            res.sendRedirect("error.jsp");
+            processError(req, res, false);
+            return;
+
         }
 
 
@@ -112,9 +118,82 @@ public class StudentServlet extends HttpServlet {
         if every check passes, then creat a new user.
          */
         students.add(new Student(name, email, course));
-    }
 
+        PrintWriter out = res.getWriter();
+
+        //a nice confirmation page
+
+        res.setContentType("text/html");
+        out.write("<html><head><title>Exception/Error Details</title></head><body>");
+        out.write("<h1>student <strong style=\"color:blue\">"+name+"</strong> added successfully</h1>");
+        out.write("</body></html>");
+
+    }
     public static List<Student> getStudentList(){
         return students;
     }
+
+    public void processError(HttpServletRequest req, HttpServletResponse res, boolean match) throws IOException {
+        String name = req.getParameter("name");
+        String email = req.getParameter("email");
+        String course = req.getParameter("course");
+
+        res.setContentType("text/html");
+
+        PrintWriter out = res.getWriter();
+        out.write("<html><head><title>Exception/Error Details</title></head><body>");
+
+        /*
+        if email is in invalid formal
+        so in doPost function we check for format
+        and we if we find that the email is in invalid format
+        we call processError method with true value in 3rd parameter
+        which indicate this function to execute the first if.
+         */
+
+        if(!match) {
+            out.write("<h3>Error Details</h3>");
+            out.write("<strong style=\"color:red\">Please Enter a Valid Email</strong>:<br>");
+
+        }
+
+        /*
+        then we check for modified field names
+        if user modifies any of those field we
+        get a null value for the corresponding variable
+         */
+        else if (name == null || email == null || course == null) {
+            out.write("<h3>Error Details</h3>");
+            out.write("<strong style=\"color:red\">please don't modify field name</strong>:<br>");
+            out.write("<strong style=\"color:blue\">try again with unmodified field</strong>:");
+
+        }
+
+        /*
+        here we check for empty value of any field
+        so we are checking for empty value in out html form
+        but user can easily bypass this check.
+
+        so this check is also necessary
+         */
+        else if(name.isEmpty() || email.isEmpty() || course.isEmpty()) {
+            out.write("<h3>Error Details</h3>");
+            out.write("<strong style=\"color:red\">you can't keep a field empty</strong>:<br>");
+            out.write("<strong style=\"color:blue\">please enter all the necessary inputs</strong>");
+        }
+
+        /*
+        same here for the option value
+        there might be some manipulate with option value
+         */
+        else if (!(course.equals("Java") || course.equals("Python") || course.equals("JavaScript"))) {
+            out.write("<h3>Error Details</h3>");
+            out.write("<strong style=\"color:red\">try with unmodified option field</strong>:<br>");
+        }
+
+        out.write("<br><br>");
+        out.println("<a href=\"register\">go to registration page</a>");
+        out.write("</body></html>");
+    }
+
 }
